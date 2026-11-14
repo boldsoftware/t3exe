@@ -1,0 +1,47 @@
+{
+  "name": "t3exe",
+  "version": "0.1.0",
+  "description": "MCP server and CLI that run T3 Code agents on exe.dev VMs, linked to your T3 Code as environments.",
+  "license": "MIT",
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "t3code",
+    "t3",
+    "exe.dev",
+    "sandbox",
+    "agents"
+  ],
+  "type": "module",
+  "bin": {
+    "t3exe": "bin/t3exe.mjs"
+  },
+  "files": [
+    "bin",
+    "dist",
+    "vm",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=22.18"
+  },
+  "scripts": {
+    "build": "rm -rf dist && tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "start": "node bin/t3exe.mjs",
+    "prepublishOnly": "npm run typecheck && npm run build"
+  },
+  "dependencies": {
+    "@exedev/sdk": "^0.4.1",
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.2",
+    "typescript": "^5.9.3"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/boldsoftware/t3exe.git"
+  }
+}
