@@ -1,6 +1,6 @@
 {
   "name": "@exedev/t3exe",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "MCP server and CLI that run T3 Code agents on exe.dev VMs, linked to your T3 Code as environments.",
   "license": "MIT",
   "keywords": [
