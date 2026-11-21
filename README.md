@@ -21,20 +21,45 @@ your T3 Code ── delegate_task(target.environmentId) ──▶ a thread on th
 ## Setup
 
 You need Node 22.18 or later, T3 Code 0.1.10 or later, and an exe.dev account whose SSH key is on this machine.
+On the machine with the T3 Code server, in your project's checkout:
 
-1. In T3 Code, turn on *Settings → Labs → Linked environments*.
-2. Create an exe.dev API key for t3exe:
-   ```sh
-   npx -y @exedev/t3exe login
-   ```
-   This runs `ssh exe.dev ssh-key generate-api-key` and saves the key to `~/.t3exe/token`. The key only works
-   on VMs tagged `t3exe`, for the commands t3exe runs, and expires in 90 days (`--exp`).
-3. Add the MCP server to the agent your T3 Code runs, on the machine with the T3 Code server:
-   ```sh
-   claude mcp add t3exe --scope user -- npx -y @exedev/t3exe
-   codex mcp add t3exe -- npx -y @exedev/t3exe
-   ```
-4. Ask a thread: *"Start an exe VM and have it fix the failing tests there."*
+```sh
+npx -y @exedev/t3exe login
+```
+
+Then ask a thread: *"Start an exe VM and have it fix the failing tests there."*
+
+`login` sets up everything t3exe needs, and running it again is safe:
+
+1. **API key.** It runs `ssh exe.dev ssh-key generate-api-key` and saves the key to `~/.t3exe/token`. The key
+   only works on VMs tagged `t3exe`, for the commands t3exe runs, and expires in 90 days (`--exp`). A saved key
+   that still works is kept (`--new-key` replaces it).
+2. **Agents.** It adds t3exe as an MCP server to each agent T3 Code has turned on, Claude Code and Codex
+   (`claude mcp add --scope user`, `codex mcp add`), replacing an earlier t3exe entry. The entry runs t3exe the
+   way you did (`npx -y @exedev/t3exe` or this install) with absolute paths, so it works under a T3 Code
+   service with a short `PATH`.
+3. **Linked environments.** It turns on *Settings → Labs → Linked environments* in T3 Code.
+4. **GitHub.** If the checkout's origin is on github.com, it makes an exe.dev
+   [GitHub integration](https://exe.dev/docs/integrations-github) for the repository attached to tag `t3exe`
+   (or attaches an existing one), so VMs clone and push it, private or not, with no token on the VM. VMs
+   clone through `https://github.int.exe.xyz` when it reaches the repository, and keep `origin` on github.com.
+   If your GitHub account isn't connected to exe.dev yet, it says so and links to where to connect it. For
+   another repository later: `t3exe repo add [OWNER/REPO]`.
+
+`t3exe logout` undoes it: removes the MCP entries and the integrations login made, and revokes and deletes
+the key. It leaves Linked environments on, and any VMs.
+
+### T3 Code on an exe.dev VM
+
+A VM can't run `ssh exe.dev`, so make the key on your computer and pass it to `login --token-stdin` on the VM
+(which needs Node):
+
+```sh
+ssh exe.dev "ssh-key generate-api-key --label=t3exe-my-t3code --tag=t3exe --cmds='whoami,ls,new,rm,pause,resume,ssh,share port,share set-public' --exp=90d --json" \
+  | ssh my-t3code.exe.xyz 'cd ~/myrepo && npx -y @exedev/t3exe login --token-stdin'
+```
+
+Run `npx -y @exedev/t3exe repo add OWNER/REPO` on your computer for the GitHub integration.
 
 ## Tools
 
@@ -86,7 +111,8 @@ sent through the exe.dev API and stored in a `0600` file that the VM's T3 Code s
   five minutes and carries only the scopes the chosen access level needs.
 - `access` (default `full-access`) is the broadest mode your agents may run with on the VM. The VM is a
   throwaway machine; your local files are not on it.
-- A private repository needs git credentials on the VM, e.g. an exe.dev GitHub integration.
+- A private GitHub repository needs an exe.dev GitHub integration on tag `t3exe` (`t3exe login` or `t3exe repo add`);
+  other private repositories need git credentials on the VM.
 
 ## Limits
 

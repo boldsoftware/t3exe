@@ -99,8 +99,29 @@ sudo systemctl restart t3exe.service
 if [ -n "${REPO:-}" ]; then
   dir="$HOME/$(basename "${REPO%.git}")"
   if [ ! -d "$dir/.git" ]; then
-    log "cloning $REPO"
-    git clone --quiet "$REPO" "$dir" || { echo "[t3exe] git clone failed: a private repository needs credentials on the VM (e.g. an exe.dev GitHub integration)" >&2; exit 1; }
+    # A github.com repository goes through exe.dev's GitHub integration when one attached to
+    # this VM covers it (`t3exe repo add`): private repositories clone and pushes work, with no
+    # token here. origin keeps its github.com URL, which T3 Code knows the repository by; a
+    # rewrite in the clone's git config sends git to the integration.
+    gh=$(printf '%s\n' "$REPO" | sed -nE 's#^https://github(\.int\.exe\.xyz|\.com)/([A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+)/?$#\2#p')
+    gh=${gh%.git}
+    via=()
+    if [ -n "$gh" ] && GIT_TERMINAL_PROMPT=0 timeout 30 git ls-remote "https://github.int.exe.xyz/$gh.git" HEAD >/dev/null 2>&1; then
+      REPO="https://github.com/$gh.git"
+      via=(-c "url.https://github.int.exe.xyz/$gh.git.insteadOf=$REPO")
+      log "cloning $REPO through exe.dev's GitHub integration"
+    else
+      log "cloning $REPO"
+    fi
+    GIT_TERMINAL_PROMPT=0 git "${via[@]}" clone --quiet "$REPO" "$dir" || {
+      if [ -n "$gh" ]; then
+        echo "[t3exe] git clone failed: if $gh is private, run \`t3exe repo add $gh\` on your computer so VMs can reach it" >&2
+      else
+        echo "[t3exe] git clone failed: a private repository needs credentials on the VM" >&2
+      fi
+      exit 1
+    }
+    [ ${#via[@]} -eq 0 ] || git -C "$dir" config "url.https://github.int.exe.xyz/$gh.git.insteadOf" "$REPO"
   fi
   [ -z "${REF:-}" ] || git -C "$dir" checkout --quiet "$REF"
 else

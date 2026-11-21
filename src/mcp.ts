@@ -42,7 +42,7 @@ server.registerTool(
       "Creates an exe.dev VM, installs this T3 Code version there with Claude Code and Codex, clones the repository and links the VM here. " +
       "Takes 1-3 minutes. Returns environmentId and projectId for delegate_task's target.",
     inputSchema: {
-      repo: z.string().optional().describe('Git URL to clone. Default: this project\'s origin. "none" for an empty repository.'),
+      repo: z.string().optional().describe('Git URL to clone. Default: this project\'s origin. "none" for an empty repository. A private GitHub repository needs `t3exe repo add` run once on the user\'s computer.'),
       ref: z.string().optional().describe("Branch, tag or commit to check out."),
       name: z.string().optional().describe("VM name, which becomes <name>.exe.xyz. Default: generated."),
       access: access.optional().describe(`The broadest runtime mode agents here may use there. Default ${DEFAULTS.access}.`),

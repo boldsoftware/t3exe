@@ -2,7 +2,7 @@
 
 import { parseArgs } from "node:util";
 import { config } from "./config.ts";
-import { login } from "./login.ts";
+import { login, logout, repoAdd } from "./login.ts";
 import { DEFAULTS, errorMessage } from "./manager.ts";
 import { gitOrigin, manager, version } from "./setup.ts";
 import type { Access, IdleAction } from "./store.ts";
@@ -11,7 +11,12 @@ const USAGE = `t3exe ${version}: exe.dev VMs as linked T3 Code environments
 
 Usage:
   t3exe                    run the MCP server (stdio)
-  t3exe login [--exp 90d]  create an exe.dev API key for t3exe (over ssh ${config.sshHost})
+  t3exe login              set up t3exe: an exe.dev API key (over ssh ${config.sshHost}), t3exe in the
+                           agents T3 Code runs, Linked environments, and this checkout's GitHub repository
+        [--new-key] [--exp 90d] [--label NAME]
+        [--token-stdin]    use the API key on stdin (e.g. on a VM, which can't ssh ${config.sshHost})
+  t3exe repo add [OWNER/REPO]  let VMs clone and push a GitHub repository (default: this checkout's)
+  t3exe logout [--force]   undo login (--force: even with t3exe VMs left)
   t3exe create [--repo URL|none] [--ref REF] [--name NAME] [--access MODE] [--cpu N] [--memory SIZE]
                [--idle MINUTES] [--on-idle pause|delete] [--ttl MINUTES] [--keep-alive]
   t3exe ls [--json]
@@ -39,6 +44,9 @@ const { values: flags, positionals } = parseArgs({
     "keep-alive": { type: "boolean" },
     exp: { type: "string" },
     label: { type: "string" },
+    "token-stdin": { type: "boolean" },
+    "new-key": { type: "boolean" },
+    force: { type: "boolean" },
     json: { type: "boolean" },
     help: { type: "boolean", short: "h" },
   },
@@ -69,12 +77,14 @@ const print = (value: unknown) => console.log(JSON.stringify(value, null, 2));
 async function main(): Promise<void> {
   if (flags.help || command === "help") return void process.stdout.write(USAGE);
   switch (command) {
-    case "login": {
-      const label = await login({ exp: flags.exp, label: flags.label });
-      console.log(`Saved an API key for VMs tagged ${config.tag} to ${config.tokenFile}.`);
-      console.log(`Revoke it with: ssh ${config.sshHost} ssh-key remove ${label}`);
+    case "login":
+      return login({ exp: flags.exp, label: flags.label, newKey: flags["new-key"], tokenStdin: flags["token-stdin"] });
+    case "logout":
+      return logout({ force: flags.force });
+    case "repo":
+      if (args[0] !== "add" || args.length > 2) throw new Error("usage: t3exe repo add [OWNER/REPO]");
+      if (!(await repoAdd({ repo: args[1] }))) process.exitCode = 1;
       return;
-    }
     case "create": {
       const repo = flags.repo === "none" ? undefined : (flags.repo ?? (await gitOrigin(process.cwd())));
       const vm = await manager().create({
