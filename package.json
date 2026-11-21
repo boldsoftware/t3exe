@@ -1,5 +1,5 @@
 {
-  "name": "t3exe",
+  "name": "@exedev/t3exe",
   "version": "0.1.0",
   "description": "MCP server and CLI that run T3 Code agents on exe.dev VMs, linked to your T3 Code as environments.",
   "license": "MIT",
@@ -43,5 +43,8 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/boldsoftware/t3exe.git"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

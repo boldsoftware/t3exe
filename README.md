@@ -25,14 +25,14 @@ You need Node 22.18 or later, T3 Code 0.1.10 or later, and an exe.dev account wh
 1. In T3 Code, turn on *Settings → Labs → Linked environments*.
 2. Create an exe.dev API key for t3exe:
    ```sh
-   npx t3exe login
+   npx -y @exedev/t3exe login
    ```
    This runs `ssh exe.dev ssh-key generate-api-key` and saves the key to `~/.t3exe/token`. The key only works
    on VMs tagged `t3exe`, for the commands t3exe runs, and expires in 90 days (`--exp`).
 3. Add the MCP server to the agent your T3 Code runs, on the machine with the T3 Code server:
    ```sh
-   claude mcp add t3exe --scope user -- npx -y t3exe
-   codex mcp add t3exe -- npx -y t3exe
+   claude mcp add t3exe --scope user -- npx -y @exedev/t3exe
+   codex mcp add t3exe -- npx -y @exedev/t3exe
    ```
 4. Ask a thread: *"Start an exe VM and have it fix the failing tests there."*
 
@@ -47,7 +47,7 @@ You need Node 22.18 or later, T3 Code 0.1.10 or later, and an exe.dev account wh
 | `exe_vm_configure` | Change a VM's cleanup: `idleMinutes`, `onIdle`, `ttlMinutes`, `keepAlive`. |
 
 The same operations are on the command line: `t3exe create`, `ls`, `rm`, `pause`, `resume`, `set`, `reap`
-(`t3exe --help`).
+(`t3exe --help`). `npm install -g @exedev/t3exe` puts `t3exe` on your PATH; otherwise use `npx -y @exedev/t3exe`.
 
 ## Cleanup
 
