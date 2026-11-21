@@ -1,6 +1,6 @@
 {
   "name": "@exedev/t3exe",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "MCP server and CLI that run T3 Code agents on exe.dev VMs, linked to your T3 Code as environments.",
   "license": "MIT",
   "keywords": [
@@ -33,7 +33,7 @@
     "test": "node --test \"test/*.test.ts\""
   },
   "dependencies": {
-    "@exedev/sdk": "^0.4.1",
+    "@exedev/sdk": "^0.7.0",
     "@modelcontextprotocol/sdk": "^1.32.2",
     "zod": "^3.25.76"
   },
