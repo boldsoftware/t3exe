@@ -52,7 +52,7 @@ The same operations are on the command line: `t3exe create`, `ls`, `rm`, `pause`
 ## Cleanup
 
 exe.dev VMs run until deleted, so t3exe cleans up after itself. Every minute it asks each VM's T3 Code
-whether a thread there is busy. A VM with no busy thread for `idleMinutes` (default 15) is deleted, or
+whether a thread there is busy, including tasks delegated to it. A VM with no busy thread for `idleMinutes` (default 15) is deleted, or
 paused if `onIdle` is `pause`. Every VM is deleted `ttlMinutes` (default 480) after it was created, unless it
 has `keepAlive`.
 

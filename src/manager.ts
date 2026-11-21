@@ -20,6 +20,35 @@ export const DEFAULTS = {
 /** Thread statuses that mean an agent is (or is about to be) working, or waits on an approval. */
 const BUSY = new Set(["preparing", "queued", "starting", "running", "waiting"]);
 
+/**
+ * Prints the VM's live threads as JSON. `t3 thread list` leaves out delegated threads,
+ * which is what a task sent here with delegate_task is, so this reads the server's
+ * orchestration snapshot instead, with a read-only token kept on the VM.
+ */
+const THREADS_SCRIPT = `set -u
+t3="$HOME/.local/bin/t3" token="$HOME/.t3exe/read-token" out="$HOME/.t3exe/shell.json"
+issue() { (umask 077 && "$t3" auth session issue --base-dir "$HOME/.t3" --scope orchestration:read --ttl 30d --label "t3exe idle check" --token-only >"$token.new" && mv "$token.new" "$token"); }
+get() { curl -sS -m 30 -o "$out" -w '%{http_code}' -H "Authorization: Bearer $(cat "$token" 2>/dev/null)" -H 'x-t3-orchestration-protocol: 2' http://127.0.0.1:${PORT}/api/orchestration/shell; }
+[ -s "$token" ] || issue
+code=$(get)
+if [ "$code" = 401 ]; then issue && code=$(get); fi
+[ "$code" = 200 ] || { echo "GET /api/orchestration/shell: HTTP $code: $(head -c 300 "$out" 2>/dev/null)" >&2; exit 1; }
+jq -c '[.threads[] | select(.archivedAt == null and .deletedAt == null) | {id, status, activityRunStatus, pendingRuntimeRequest: (.pendingRuntimeRequest != null)}]' "$out"`;
+
+export interface ThreadState {
+  id: string;
+  status?: string | null;
+  activityRunStatus?: string | null;
+  pendingRuntimeRequest?: boolean;
+}
+
+/** Whether any thread is working, about to work, or waiting on an approval. */
+export function anyBusy(threads: ThreadState[]): boolean {
+  return threads.some(
+    (t) => BUSY.has(t.status ?? "") || BUSY.has(t.activityRunStatus ?? "") || t.pendingRuntimeRequest === true,
+  );
+}
+
 /** Abandon a creation after this long: its process is gone. */
 const CREATE_TIMEOUT_MS = 30 * 60_000;
 
@@ -209,12 +238,11 @@ export class Manager {
     });
   }
 
-  /** Whether any thread in the VM's project is busy. */
+  /** Whether any thread on the VM is busy, including tasks delegated to it over the link. */
   async busy(record: VMRecord, signal?: AbortSignal): Promise<boolean> {
-    const command = `~/.local/bin/t3 thread list --base-dir ~/.t3 --json --project ${quote(record.projectId ?? "")}`;
-    const { exitCode, stdout, stderr } = await this.exe.vm(record.name).ssh(command, { signal });
-    if (exitCode !== 0) throw new Error(`t3 thread list on ${record.name}: ${stderr.trim()}`);
-    return (JSON.parse(stdout) as { status: string }[]).some((t) => BUSY.has(t.status));
+    const { exitCode, stdout, stderr } = await this.exe.vm(record.name).ssh(THREADS_SCRIPT, { signal });
+    if (exitCode !== 0) throw new Error(`reading threads on ${record.name}: ${stderr.trim()}`);
+    return anyBusy(JSON.parse(stdout));
   }
 
   /** Applies each VM's TTL and idle policy once. */
